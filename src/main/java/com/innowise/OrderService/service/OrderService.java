@@ -12,12 +12,13 @@ import com.innowise.OrderService.exception.exceptions.TokenValidationCustomExcep
 import com.innowise.OrderService.mapper.OrderMapper;
 import com.innowise.OrderService.repository.ItemRepository;
 import com.innowise.OrderService.repository.OrderRepository;
-import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -34,7 +35,7 @@ public class OrderService {
     private OrderMapper orderMapper;
     private WebClient webClient;
 
-
+    @Transactional(readOnly = true)
     public OrderResponseDto createOrder(OrderRequestDto dto) {
 
         if (dto.getItems() == null || dto.getItems().isEmpty()) {
@@ -60,6 +61,8 @@ public class OrderService {
         return orderMapper.toDto(savedOrder);
     }
 
+
+    @Transactional(readOnly = true)
     public OrderResponseDto getOrderById(Long id) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundCustomException("User not found"));
@@ -70,6 +73,8 @@ public class OrderService {
         return responseDto;
     }
 
+
+    @Transactional(readOnly = true)
     public List<OrderResponseDto> getOrdersByEmail(String email) {
 
         List<Order> orders = orderRepository.findByUserId(getUserDetailsByEmail(email).getId());
@@ -84,10 +89,10 @@ public class OrderService {
                 })
                 .toList();
 
-
         return orderDtos;
     }
 
+    @Transactional(readOnly = true)
     public List<OrderResponseDto> getOrdersByIds(List<Long> ids) {
 
         List<Order> orders = orderRepository.findAllById(ids);
