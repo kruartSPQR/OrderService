@@ -38,11 +38,6 @@ public class JwtValidator {
                 .getPayload();
     }
 
-    public String extractUsername(String token) {
-        Claims claims = validateAndExtractClaims(token);
-        return claims.getSubject();
-    }
-
     public boolean isTokenExpired(Claims claims) {
         return claims.getExpiration().before(new Date());
     }

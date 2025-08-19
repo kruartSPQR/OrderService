@@ -7,10 +7,11 @@ import com.innowise.OrderService.dto.order.OrderResponseDto;
 import com.innowise.OrderService.entity.Item;
 import com.innowise.OrderService.entity.Order;
 import com.innowise.OrderService.entity.OrderItem;
+import com.innowise.OrderService.exception.exceptions.ResourceNotFoundCustomException;
+import com.innowise.OrderService.exception.exceptions.TokenValidationCustomException;
 import com.innowise.OrderService.mapper.OrderMapper;
 import com.innowise.OrderService.repository.ItemRepository;
 import com.innowise.OrderService.repository.OrderRepository;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -47,7 +48,7 @@ public class OrderService {
 
         for (OrderItemRequestDto itemDto : dto.getItems()) {
             Item item = itemRepository.findById(itemDto.getItemId()).orElseThrow(() ->
-                    new EntityNotFoundException("Item not found with id: " + itemDto.getItemId()));
+                    new ResourceNotFoundCustomException("Item not found with id: " + itemDto.getItemId()));
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
             orderItem.setItem(item);
@@ -60,50 +61,51 @@ public class OrderService {
     }
 
     public OrderResponseDto getOrderById(Long id) {
-       Order order =  orderRepository.findById(id)
-               .orElseThrow(()-> new UsernameNotFoundException("User not found"));
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundCustomException("User not found"));
 
-       OrderResponseDto responseDto = orderMapper.toDto(order);
-       responseDto.setUserInfo(getUserDetails(order.getUserId()));
+        OrderResponseDto responseDto = orderMapper.toDto(order);
+        responseDto.setUserInfo(getUserDetails(order.getUserId()));
 
-       return responseDto;
+        return responseDto;
     }
+
     public List<OrderResponseDto> getOrdersByEmail(String email) {
 
-            List<Order> orders = orderRepository.findByUserId(getUserDetailsByEmail(email).getId());
-            if (orders == null) {
-                throw new UsernameNotFoundException("Orders not found");
-            }
-            List<OrderResponseDto> orderDtos = orders.stream()
-                    .map(order -> {
-                        OrderResponseDto dto = orderMapper.toDto(order);
-                        dto.setUserInfo(getUserDetails(order.getUserId()));
-                        return dto;
-                    })
-                    .toList();
+        List<Order> orders = orderRepository.findByUserId(getUserDetailsByEmail(email).getId());
+        if (orders == null) {
+            throw new ResourceNotFoundCustomException("Orders not found");
+        }
+        List<OrderResponseDto> orderDtos = orders.stream()
+                .map(order -> {
+                    OrderResponseDto dto = orderMapper.toDto(order);
+                    dto.setUserInfo(getUserDetails(order.getUserId()));
+                    return dto;
+                })
+                .toList();
 
 
-            return orderDtos;
+        return orderDtos;
     }
 
     public List<OrderResponseDto> getOrdersByIds(List<Long> ids) {
 
-    List<Order> orders = orderRepository.findAllById(ids);
+        List<Order> orders = orderRepository.findAllById(ids);
 
-    return  orders.stream().map(order ->
-            {
-                OrderResponseDto responseDto = orderMapper.toDto(order);
-                responseDto.setUserInfo(getUserDetails(order.getUserId()));
-                return responseDto;
-            })
-            .toList();
+        return orders.stream().map(order ->
+                {
+                    OrderResponseDto responseDto = orderMapper.toDto(order);
+                    responseDto.setUserInfo(getUserDetails(order.getUserId()));
+                    return responseDto;
+                })
+                .toList();
     }
 
     public List<OrderResponseDto> getOrdersByStatus(String status) {
 
         List<Order> orders = orderRepository.findAllByStatus(status);
 
-        return  orders.stream().map(order ->
+        return orders.stream().map(order ->
                 {
                     OrderResponseDto responseDto = orderMapper.toDto(order);
                     responseDto.setUserInfo(getUserDetails(order.getUserId()));
@@ -114,8 +116,8 @@ public class OrderService {
 
     @Transactional
     public OrderResponseDto updateOrder(Long id, OrderRequestDto orderRequestDto) {
-        Order order = orderRepository.findById(id) .orElseThrow(() ->
-                new EntityNotFoundException("Item not found with id: " + id));
+        Order order = orderRepository.findById(id).orElseThrow(() ->
+                new ResourceNotFoundCustomException("Item not found with id: " + id));
 
         order.setStatus(orderRequestDto.getStatus());
         order.setUserId(orderRequestDto.getUserId());
@@ -128,7 +130,7 @@ public class OrderService {
     public void deleteOrder(Long id) {
         Order order = orderRepository.findOrderById(id);
         if (!orderRepository.existsById(id)) {
-            throw new EntityNotFoundException("Order not found with id: " + id);
+            throw new ResourceNotFoundCustomException("Order not found with id: " + id);
         }
         orderRepository.delete(order);
     }
@@ -143,7 +145,7 @@ public class OrderService {
         String authorizationHeader = attributes.getRequest().getHeader(HttpHeaders.AUTHORIZATION);
 
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            throw new BadCredentialsException("No valid JWT token found in request");
+            throw new TokenValidationCustomException("No valid JWT token found in request");
         }
 
         String accessToken = authorizationHeader.substring(7);
@@ -167,7 +169,7 @@ public class OrderService {
         String authorizationHeader = attributes.getRequest().getHeader(HttpHeaders.AUTHORIZATION);
 
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            throw new BadCredentialsException("No valid JWT token found in request");
+            throw new TokenValidationCustomException("No valid JWT token found in request");
         }
 
         String accessToken = authorizationHeader.substring(7);
@@ -180,5 +182,4 @@ public class OrderService {
 
         return user;
     }
-
 }

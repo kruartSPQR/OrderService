@@ -3,10 +3,9 @@ package com.innowise.OrderService.service;
 import com.innowise.OrderService.dto.item.ItemRequestDto;
 import com.innowise.OrderService.dto.item.ItemResponseDto;
 import com.innowise.OrderService.entity.Item;
-import com.innowise.OrderService.entity.Order;
+import com.innowise.OrderService.exception.exceptions.ResourceNotFoundCustomException;
 import com.innowise.OrderService.mapper.ItemMapper;
 import com.innowise.OrderService.repository.ItemRepository;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,7 +29,7 @@ public class ItemService {
     public ItemResponseDto getItemById(Long id) {
         Item item = itemRepository.findById(id)
                 .orElseThrow(() ->
-                        new EntityNotFoundException("Item not found with id: " + id));
+                        new ResourceNotFoundCustomException("Item not found with id: " + id));
         return itemMapper.toDto(item);
     }
 
@@ -45,7 +44,7 @@ public class ItemService {
     public ItemResponseDto updateItem(Long id, ItemRequestDto requestDto) {
         Item existingItem = itemRepository.findById(id)
                 .orElseThrow(() ->
-                        new EntityNotFoundException("Item not found with id: " + id));
+                        new ResourceNotFoundCustomException("Item not found with id: " + id));
 
         existingItem.setName(requestDto.getName());
         existingItem.setPrice(requestDto.getPrice());
@@ -58,7 +57,7 @@ public class ItemService {
     public void deleteItem(Long id) {
         Item item = itemRepository.findById(id)
                 .orElseThrow(() ->
-                        new EntityNotFoundException("Item not found with id: " + id));
+                        new ResourceNotFoundCustomException("Item not found with id: " + id));
 
         itemRepository.delete(item);
     }
