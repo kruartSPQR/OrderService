@@ -35,7 +35,7 @@ public class OrderService {
     private OrderMapper orderMapper;
     private WebClient webClient;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public OrderResponseDto createOrder(OrderRequestDto dto) {
 
         if (dto.getItems() == null || dto.getItems().isEmpty()) {
@@ -62,7 +62,7 @@ public class OrderService {
     }
 
 
-    @Transactional(readOnly = true)
+    @Transactional
     public OrderResponseDto getOrderById(Long id) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundCustomException("User not found"));
@@ -74,7 +74,7 @@ public class OrderService {
     }
 
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<OrderResponseDto> getOrdersByEmail(String email) {
 
         List<Order> orders = orderRepository.findByUserId(getUserDetailsByEmail(email).getId());
@@ -92,7 +92,7 @@ public class OrderService {
         return orderDtos;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<OrderResponseDto> getOrdersByIds(List<Long> ids) {
 
         List<Order> orders = orderRepository.findAllById(ids);
