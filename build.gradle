@@ -70,10 +70,10 @@ sonar {
     }
 }
 test {
-    finalizedBy jacocoTestReport // report is always generated after tests run
+    finalizedBy jacocoTestReport
 }
 jacocoTestReport {
-    dependsOn test // tests are required to run before generating the report
+    dependsOn test
     reports {
         xml.required = true
         csv.required = false
@@ -82,5 +82,4 @@ jacocoTestReport {
 }
 jacoco {
     toolVersion = "0.8.13"
-//    reportsDirectory = layout.buildDirectory.dir('customJacocoReportDir')
 }
