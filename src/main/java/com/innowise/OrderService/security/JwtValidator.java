@@ -43,6 +43,6 @@ public class JwtValidator {
     }
 
     public String extractRole(Claims claims) {
-        return (String) claims.get("Role");
+        return (String) claims.get("role");
     }
 }

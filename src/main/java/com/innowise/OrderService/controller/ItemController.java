@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/items")
+@RequestMapping("/api/v1/orders/items")
 @RequiredArgsConstructor
 public class ItemController {
 
