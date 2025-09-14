@@ -2,15 +2,17 @@ package com.innowise.OrderService.unitTests;
 
 import com.innowise.OrderService.dto.order.OrderRequestDto;
 import com.innowise.OrderService.dto.order.OrderResponseDto;
+import com.innowise.OrderService.dto.order.OrderUpdateRequestDto;
 import com.innowise.OrderService.dto.orderItem.OrderItemRequestDto;
 import com.innowise.OrderService.dto.userData.UserData;
 import com.innowise.OrderService.entity.Item;
 import com.innowise.OrderService.entity.Order;
-import com.innowise.OrderService.exception.exceptions.ResourceNotFoundCustomException;
 import com.innowise.OrderService.mapper.OrderMapper;
+import com.innowise.OrderService.producer.OrderProducer;
 import com.innowise.OrderService.repository.ItemRepository;
 import com.innowise.OrderService.repository.OrderRepository;
 import com.innowise.OrderService.service.OrderService;
+import com.innowise.common.exception.ResourceNotFoundCustomException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,10 +54,14 @@ public class OrderServiceUnitTest {
     @Mock
     private WebClient webClient;
 
+    @Mock
+    private OrderProducer orderProducer;
+
     @InjectMocks
     private OrderService orderService;
 
     private OrderRequestDto orderRequestDto;
+    private OrderUpdateRequestDto orderUpdatedRequestDto;
     private Order orderEntity;
     private OrderResponseDto orderResponseDto;
     private UserData userData;
@@ -68,8 +74,12 @@ public class OrderServiceUnitTest {
 
         orderRequestDto = new OrderRequestDto();
         orderRequestDto.setUserId(1L);
-        orderRequestDto.setStatus("PENDING");
         orderRequestDto.setItems(List.of(new OrderItemRequestDto(1L, 2)));
+
+        orderUpdatedRequestDto = new OrderUpdateRequestDto();
+        orderUpdatedRequestDto.setUserId(1L);
+        orderUpdatedRequestDto.setStatus("PENDING");
+        orderUpdatedRequestDto.setItems(List.of(new OrderItemRequestDto(1L, 2)));
 
         orderEntity = new Order();
         orderEntity.setId(1L);
@@ -188,7 +198,7 @@ public class OrderServiceUnitTest {
         when(orderRepository.save(orderEntity)).thenReturn(orderEntity);
         when(orderMapper.toDto(orderEntity)).thenReturn(orderResponseDto);
 
-        OrderResponseDto result = orderService.updateOrder(1L, orderRequestDto);
+        OrderResponseDto result = orderService.updateOrder(1L, orderUpdatedRequestDto);
 
         assertNotNull(result);
         assertEquals(orderResponseDto.getUserId(), result.getUserId());

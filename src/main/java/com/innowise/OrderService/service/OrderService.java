@@ -1,5 +1,6 @@
 package com.innowise.OrderService.service;
 
+import com.innowise.OrderService.dto.order.OrderUpdateRequestDto;
 import com.innowise.OrderService.dto.orderItem.OrderItemRequestDto;
 import com.innowise.OrderService.dto.userData.UserData;
 import com.innowise.OrderService.dto.order.OrderRequestDto;
@@ -7,11 +8,13 @@ import com.innowise.OrderService.dto.order.OrderResponseDto;
 import com.innowise.OrderService.entity.Item;
 import com.innowise.OrderService.entity.Order;
 import com.innowise.OrderService.entity.OrderItem;
-import com.innowise.OrderService.exception.exceptions.ResourceNotFoundCustomException;
-import com.innowise.OrderService.exception.exceptions.TokenValidationCustomException;
 import com.innowise.OrderService.mapper.OrderMapper;
+import com.innowise.OrderService.producer.OrderProducer;
 import com.innowise.OrderService.repository.ItemRepository;
 import com.innowise.OrderService.repository.OrderRepository;
+import com.innowise.common.event.OrderCreatedEvent;
+import com.innowise.common.exception.ResourceNotFoundCustomException;
+import com.innowise.common.exception.TokenValidationCustomException;
 import lombok.AllArgsConstructor;
 
 import org.springframework.http.HttpHeaders;
@@ -21,6 +24,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -32,6 +36,7 @@ public class OrderService {
     private ItemRepository itemRepository;
     private OrderMapper orderMapper;
     private WebClient webClient;
+    private OrderProducer orderProducer;
 
     @Transactional
     public OrderResponseDto createOrder(OrderRequestDto dto) {
@@ -42,7 +47,7 @@ public class OrderService {
 
         Order order = new Order();
         order.setUserId(dto.getUserId());
-        order.setStatus(dto.getStatus());
+        order.setStatus("PENDING");
         order.setCreationDate(LocalDateTime.now());
 
         for (OrderItemRequestDto itemDto : dto.getItems()) {
@@ -56,6 +61,12 @@ public class OrderService {
         }
 
         Order savedOrder = orderRepository.save(order);
+
+        BigDecimal amount = calcAmount(savedOrder);
+
+        OrderCreatedEvent orderCreatedEvent = new OrderCreatedEvent(savedOrder.getId(), savedOrder.getUserId(), amount, savedOrder.getCreationDate());
+        orderProducer.sendOrderCreated(orderCreatedEvent);
+
         return orderMapper.toDto(savedOrder);
     }
 
@@ -118,12 +129,12 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponseDto updateOrder(Long id, OrderRequestDto orderRequestDto) {
+    public OrderResponseDto updateOrder(Long id, OrderUpdateRequestDto dto) {
         Order order = orderRepository.findById(id).orElseThrow(() ->
                 new ResourceNotFoundCustomException("Item not found with id: " + id));
 
-        order.setStatus(orderRequestDto.getStatus());
-        order.setUserId(orderRequestDto.getUserId());
+        order.setStatus(dto.getStatus());
+//        order.setUserId(dto.getUserId());
         Order updatedOrder = orderRepository.save(order);
 
         return orderMapper.toDto(updatedOrder);
@@ -184,5 +195,10 @@ public class OrderService {
                 .block();
 
         return user;
+    }
+    public BigDecimal calcAmount(Order savedOrder) {
+        return savedOrder.getOrderItems().stream()
+                .map(oi -> BigDecimal.valueOf(oi.getQuantity() * oi.getItem().getPrice()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

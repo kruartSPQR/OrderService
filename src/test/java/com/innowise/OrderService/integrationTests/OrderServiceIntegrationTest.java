@@ -5,11 +5,12 @@ import com.innowise.OrderService.dto.item.ItemRequestDto;
 import com.innowise.OrderService.dto.item.ItemResponseDto;
 import com.innowise.OrderService.dto.order.OrderRequestDto;
 import com.innowise.OrderService.dto.order.OrderResponseDto;
+import com.innowise.OrderService.dto.order.OrderUpdateRequestDto;
 import com.innowise.OrderService.dto.orderItem.OrderItemRequestDto;
 import com.innowise.OrderService.dto.userData.UserData;
-import com.innowise.OrderService.exception.exceptions.ResourceNotFoundCustomException;
 import com.innowise.OrderService.service.ItemService;
 import com.innowise.OrderService.service.OrderService;
+import com.innowise.common.exception.ResourceNotFoundCustomException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -43,10 +44,16 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
     @MockitoBean
     private WebClient webClient;
 
+    private OrderUpdateRequestDto createTestUpdateOrderDto(Long itemId) {
+        OrderUpdateRequestDto dto = new OrderUpdateRequestDto();
+        dto.setUserId(1L);
+        dto.setStatus("PENDING");
+        dto.setItems(List.of(new OrderItemRequestDto(itemId, 1)));
+        return dto;
+    }
     private OrderRequestDto createTestOrderDto(Long itemId) {
         OrderRequestDto dto = new OrderRequestDto();
         dto.setUserId(1L);
-        dto.setStatus("PENDING");
         dto.setItems(List.of(new OrderItemRequestDto(itemId, 1)));
         return dto;
     }
@@ -102,12 +109,13 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
 
         OrderResponseDto order = orderService.createOrder(createTestOrderDto(item.getId()));
 
-        OrderRequestDto updateRequest = createTestOrderDto(item.getId());
+        OrderUpdateRequestDto updateRequest = createTestUpdateOrderDto(item.getId());
         updateRequest.setStatus("COMPLETED");
 
-        OrderResponseDto updated = orderService.updateOrder(order.getId(), updateRequest);
+        OrderResponseDto updated = orderService.updateOrder(1L, updateRequest);
 
-        assertEquals("COMPLETED", updated.getStatus());
+        assertEquals(updated.getStatus(), "COMPLETED");
+
     }
 
     @Test

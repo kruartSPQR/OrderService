@@ -2,8 +2,8 @@ package com.innowise.OrderService.integrationTests;
 
 import com.innowise.OrderService.dto.item.ItemRequestDto;
 import com.innowise.OrderService.dto.item.ItemResponseDto;
-import com.innowise.OrderService.exception.exceptions.ResourceNotFoundCustomException;
 import com.innowise.OrderService.service.ItemService;
+import com.innowise.common.exception.ResourceNotFoundCustomException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;

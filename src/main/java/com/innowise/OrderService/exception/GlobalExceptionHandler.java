@@ -1,9 +1,9 @@
 package com.innowise.OrderService.exception;
 
-import com.innowise.OrderService.exception.exceptions.DuplicateResourceCustomException;
-import com.innowise.OrderService.exception.exceptions.ResourceNotFoundCustomException;
+import com.innowise.common.exception.ResourceNotFoundCustomException;
+import com.innowise.common.exception.DuplicateResourceCustomException;
 
-import com.innowise.OrderService.exception.exceptions.TokenValidationCustomException;
+import com.innowise.common.exception.TokenValidationCustomException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;

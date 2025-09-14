@@ -10,10 +10,13 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class OrderRequestDto {
+public class OrderUpdateRequestDto {
 
     @NotNull
     Long userId;
+
+    @Size(max = 32, message = "Status max length is 255")
+    String status;
 
     @NotEmpty
     private List<OrderItemRequestDto> items;
