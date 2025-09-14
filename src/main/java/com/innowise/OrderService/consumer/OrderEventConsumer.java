@@ -1,6 +1,5 @@
 package com.innowise.OrderService.consumer;
 
-import com.innowise.OrderService.dto.order.OrderRequestDto;
 import com.innowise.OrderService.dto.order.OrderUpdateRequestDto;
 import com.innowise.OrderService.entity.Order;
 import com.innowise.OrderService.repository.OrderRepository;

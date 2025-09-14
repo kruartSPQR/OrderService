@@ -1,10 +1,8 @@
 package com.innowise.OrderService.dto.order;
 
 import com.innowise.OrderService.dto.orderItem.OrderItemRequestDto;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.util.List;

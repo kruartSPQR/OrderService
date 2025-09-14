@@ -1,6 +1,5 @@
 package com.innowise.OrderService.integrationTests;
 
-
 import com.innowise.OrderService.dto.item.ItemRequestDto;
 import com.innowise.OrderService.dto.item.ItemResponseDto;
 import com.innowise.OrderService.dto.order.OrderRequestDto;
@@ -8,8 +7,10 @@ import com.innowise.OrderService.dto.order.OrderResponseDto;
 import com.innowise.OrderService.dto.order.OrderUpdateRequestDto;
 import com.innowise.OrderService.dto.orderItem.OrderItemRequestDto;
 import com.innowise.OrderService.dto.userData.UserData;
+import com.innowise.OrderService.producer.OrderProducer;
 import com.innowise.OrderService.service.ItemService;
 import com.innowise.OrderService.service.OrderService;
+import com.innowise.common.event.OrderCreatedEvent;
 import com.innowise.common.exception.ResourceNotFoundCustomException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +31,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class OrderServiceIntegrationTest extends BaseIntegrationTest {
@@ -44,6 +48,9 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
     @MockitoBean
     private WebClient webClient;
 
+    @MockitoBean
+    private OrderProducer orderProducer;
+
     private OrderUpdateRequestDto createTestUpdateOrderDto(Long itemId) {
         OrderUpdateRequestDto dto = new OrderUpdateRequestDto();
         dto.setUserId(1L);
@@ -51,6 +58,7 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
         dto.setItems(List.of(new OrderItemRequestDto(itemId, 1)));
         return dto;
     }
+
     private OrderRequestDto createTestOrderDto(Long itemId) {
         OrderRequestDto dto = new OrderRequestDto();
         dto.setUserId(1L);
@@ -88,8 +96,12 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
         user.setEmail("order.user@example.com");
         mockWebClient(user);
 
+        doNothing().when(orderProducer).sendOrderCreated(any(OrderCreatedEvent.class));
+
         OrderRequestDto orderRequest = createTestOrderDto(item.getId());
         OrderResponseDto orderResponse = orderService.createOrder(orderRequest);
+
+        verify(orderProducer, times(1)).sendOrderCreated(any(OrderCreatedEvent.class));
 
         assertNotNull(orderResponse.getId());
         assertEquals(1L, orderResponse.getUserId());
@@ -107,6 +119,8 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
         user.setId(1L);
         mockWebClient(user);
 
+        doNothing().when(orderProducer).sendOrderCreated(any(OrderCreatedEvent.class));
+
         OrderResponseDto order = orderService.createOrder(createTestOrderDto(item.getId()));
 
         OrderUpdateRequestDto updateRequest = createTestUpdateOrderDto(item.getId());
@@ -115,7 +129,6 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
         OrderResponseDto updated = orderService.updateOrder(1L, updateRequest);
 
         assertEquals(updated.getStatus(), "COMPLETED");
-
     }
 
     @Test
@@ -126,6 +139,8 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
         UserData user = new UserData();
         user.setId(1L);
         mockWebClient(user);
+
+        doNothing().when(orderProducer).sendOrderCreated(any(OrderCreatedEvent.class));
 
         OrderResponseDto order = orderService.createOrder(createTestOrderDto(item.getId()));
 
@@ -145,6 +160,8 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
         user.setId(1L);
         mockWebClient(user);
 
+        doNothing().when(orderProducer).sendOrderCreated(any(OrderCreatedEvent.class));
+
         OrderRequestDto order1 = createTestOrderDto(item1.getId());
         OrderRequestDto order2 = createTestOrderDto(item2.getId());
 
@@ -158,6 +175,8 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
         assertEquals(2, orders.size());
         assertTrue(orders.stream().anyMatch(o -> o.getId().equals(created1.getId())));
         assertTrue(orders.stream().anyMatch(o -> o.getId().equals(created2.getId())));
+
+        verify(orderProducer, times(2)).sendOrderCreated(any(OrderCreatedEvent.class));
     }
 
     @Test

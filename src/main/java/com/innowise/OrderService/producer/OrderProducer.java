@@ -11,7 +11,7 @@ public class OrderProducer {
     private KafkaTemplate<String, Object> kafkaTemplate;
 
     public void sendOrderCreated(OrderCreatedEvent event) {
-        String key = event.getUserId().toString(); // Партиционирование по userId для ordering
+        String key = event.getUserId().toString();
         kafkaTemplate.send("create-order-topic", key, event);
     }
 }
