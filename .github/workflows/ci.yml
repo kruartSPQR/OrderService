@@ -10,9 +10,9 @@ on:
 
 jobs:
   build:
+    runs-on: ubuntu-latest
     env:
       GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
-    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -29,6 +29,8 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    env:
+      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
     needs: build
     steps:
       - uses: actions/checkout@v4
