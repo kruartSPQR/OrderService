@@ -126,7 +126,7 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
         OrderUpdateRequestDto updateRequest = createTestUpdateOrderDto(item.getId());
         updateRequest.setStatus("COMPLETED");
 
-        OrderResponseDto updated = orderService.updateOrder(1L, updateRequest);
+        OrderResponseDto updated = orderService.updateOrder(order.getId(), updateRequest);
 
         assertEquals(updated.getStatus(), "COMPLETED");
     }
