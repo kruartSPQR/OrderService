@@ -128,7 +128,7 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
 
         OrderResponseDto updated = orderService.updateOrder(order.getId(), updateRequest);
 
-        assertEquals(updated.getStatus(), "COMPLETED");
+        assertEquals("COMPLETED",updated.getStatus());
     }
 
     @Test
