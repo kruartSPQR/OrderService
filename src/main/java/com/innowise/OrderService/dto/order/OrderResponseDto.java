@@ -11,7 +11,7 @@ import java.util.List;
 public class OrderResponseDto {
     private Long id;
 
-    private Long userId;
+    private String userId;
 
     private String status;
 

@@ -14,12 +14,8 @@ import com.innowise.common.event.OrderCreatedEvent;
 import com.innowise.common.exception.ResourceNotFoundCustomException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
-import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -31,10 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class OrderServiceIntegrationTest extends BaseIntegrationTest {
@@ -53,7 +46,7 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
 
     private OrderUpdateRequestDto createTestUpdateOrderDto(Long itemId) {
         OrderUpdateRequestDto dto = new OrderUpdateRequestDto();
-        dto.setUserId(1L);
+        dto.setUserId("test@example.com");
         dto.setStatus("PENDING");
         dto.setItems(List.of(new OrderItemRequestDto(itemId, 1)));
         return dto;
@@ -61,16 +54,12 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
 
     private OrderRequestDto createTestOrderDto(Long itemId) {
         OrderRequestDto dto = new OrderRequestDto();
-        dto.setUserId(1L);
+        dto.setUserId("test@example.com");
         dto.setItems(List.of(new OrderItemRequestDto(itemId, 1)));
         return dto;
     }
 
     private void mockWebClient(UserData userData) {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer test-token");
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
-
         WebClient.RequestHeadersUriSpec uriSpec = mock(WebClient.RequestHeadersUriSpec.class);
         WebClient.RequestHeadersSpec headerSpec = mock(WebClient.RequestHeadersSpec.class);
         WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
@@ -78,7 +67,6 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
 
         when(webClient.get()).thenReturn(uriSpec);
         when(uriSpec.uri(anyString(), (Object) any())).thenReturn(headerSpec);
-        when(headerSpec.header(anyString(), anyString())).thenReturn(headerSpec);
         when(headerSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.bodyToMono(UserData.class)).thenReturn(mono);
     }
@@ -93,18 +81,14 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
 
         UserData user = new UserData();
         user.setId(1L);
-        user.setEmail("order.user@example.com");
+        user.setEmail("test@example.com");
         mockWebClient(user);
-
-        doNothing().when(orderProducer).sendOrderCreated(any(OrderCreatedEvent.class));
 
         OrderRequestDto orderRequest = createTestOrderDto(item.getId());
         OrderResponseDto orderResponse = orderService.createOrder(orderRequest);
 
-        verify(orderProducer, times(1)).sendOrderCreated(any(OrderCreatedEvent.class));
-
         assertNotNull(orderResponse.getId());
-        assertEquals(1L, orderResponse.getUserId());
+        assertEquals("test@example.com", orderResponse.getUserId());
 
         OrderResponseDto byId = orderService.getOrderById(orderResponse.getId());
         assertEquals(orderResponse.getStatus(), byId.getStatus());
@@ -117,9 +101,8 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
 
         UserData user = new UserData();
         user.setId(1L);
+        user.setEmail("test@example.com");
         mockWebClient(user);
-
-        doNothing().when(orderProducer).sendOrderCreated(any(OrderCreatedEvent.class));
 
         OrderResponseDto order = orderService.createOrder(createTestOrderDto(item.getId()));
 
@@ -128,7 +111,7 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
 
         OrderResponseDto updated = orderService.updateOrder(order.getId(), updateRequest);
 
-        assertEquals("COMPLETED",updated.getStatus());
+        assertEquals("COMPLETED", updated.getStatus());
     }
 
     @Test
@@ -138,9 +121,8 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
 
         UserData user = new UserData();
         user.setId(1L);
+        user.setEmail("test@example.com");
         mockWebClient(user);
-
-        doNothing().when(orderProducer).sendOrderCreated(any(OrderCreatedEvent.class));
 
         OrderResponseDto order = orderService.createOrder(createTestOrderDto(item.getId()));
 
@@ -158,9 +140,8 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
 
         UserData user = new UserData();
         user.setId(1L);
+        user.setEmail("test@example.com");
         mockWebClient(user);
-
-        doNothing().when(orderProducer).sendOrderCreated(any(OrderCreatedEvent.class));
 
         OrderRequestDto order1 = createTestOrderDto(item1.getId());
         OrderRequestDto order2 = createTestOrderDto(item2.getId());
@@ -175,8 +156,27 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
         assertEquals(2, orders.size());
         assertTrue(orders.stream().anyMatch(o -> o.getId().equals(created1.getId())));
         assertTrue(orders.stream().anyMatch(o -> o.getId().equals(created2.getId())));
+    }
 
-        verify(orderProducer, times(2)).sendOrderCreated(any(OrderCreatedEvent.class));
+    @Test
+    @DirtiesContext
+    void shouldGetOrdersByEmail() {
+        ItemResponseDto item = itemService.createItem(new ItemRequestDto("Item", 50.0));
+
+        UserData user = new UserData();
+        user.setId(1L);
+        user.setEmail("test@example.com");
+        mockWebClient(user);
+
+        OrderRequestDto orderRequest = createTestOrderDto(item.getId());
+        orderRequest.setUserId("testus@example.com");
+        OrderResponseDto orderResponse = orderService.createOrder(orderRequest);
+
+        List<OrderResponseDto> orders = orderService.getOrdersByEmail("testus@example.com");
+
+        assertNotNull(orders);
+        assertEquals(1, orders.size());
+        assertEquals(orderResponse.getId(), orders.get(0).getId());
     }
 
     @Test
@@ -184,6 +184,7 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
     void shouldGiveExceptionWhenItemNotFound() {
         UserData user = new UserData();
         user.setId(1L);
+        user.setEmail("test@example.com");
         mockWebClient(user);
 
         OrderRequestDto orderRequest = createTestOrderDto(999L);

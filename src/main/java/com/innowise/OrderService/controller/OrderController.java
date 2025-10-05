@@ -34,6 +34,12 @@ public class OrderController {
     return new ResponseEntity<>(orderService.createOrder(orderRequestDto), HttpStatus.CREATED);
     }
 
+    @PostMapping("/pay/{orderId}" )
+    @ResponseStatus(HttpStatus.CREATED)
+    void sendOrderCreatedEvent(@PathVariable Long orderId) {
+        orderService.sendOrderCreatedEvent(orderId);
+    }
+
     @GetMapping("/{id}")
     ResponseEntity<OrderResponseDto> getOrderById( @PathVariable Long id){
         return new ResponseEntity<>(orderService.getOrderById(id), HttpStatus.OK);

@@ -13,7 +13,7 @@ CREATE TABLE items
 CREATE TABLE orders
 (
     order_id SERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL,
+    user_id VARCHAR(255) NOT NULL,
     status VARCHAR(32) DEFAULT 'PENDING',
     creation_date TIMESTAMP NOT NULL DEFAULT CURRENT_DATE
 );

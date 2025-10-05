@@ -14,14 +14,10 @@ import com.innowise.OrderService.repository.ItemRepository;
 import com.innowise.OrderService.repository.OrderRepository;
 import com.innowise.common.event.OrderCreatedEvent;
 import com.innowise.common.exception.ResourceNotFoundCustomException;
-import com.innowise.common.exception.TokenValidationCustomException;
 import lombok.AllArgsConstructor;
 
-import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
@@ -62,14 +58,29 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
-        BigDecimal amount = calcAmount(savedOrder);
-
-        OrderCreatedEvent orderCreatedEvent = new OrderCreatedEvent(savedOrder.getId(), savedOrder.getUserId(), amount, savedOrder.getCreationDate());
-        orderProducer.sendOrderCreated(orderCreatedEvent);
-
         return orderMapper.toDto(savedOrder);
     }
+    @Transactional
+public void sendOrderCreatedEvent(Long orderId) {
 
+    Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new ResourceNotFoundCustomException("Order not found with ID: " + orderId));
+
+    String userId = getOrderById(orderId).getUserId();
+
+    if (!order.getUserId().equals(userId)) {
+        throw new ResourceNotFoundCustomException("Order does not belong to user: " + userId);
+    }
+
+    if (order.getStatus().equals("PAID") || order.getStatus().equals("FAILED")) {
+        throw new IllegalStateException("Order is already paid or failed");
+    }
+
+    BigDecimal amount = calcAmount(order);
+
+       OrderCreatedEvent orderCreatedEvent = new OrderCreatedEvent(order.getId(), order.getUserId(), amount, order.getCreationDate());
+       orderProducer.sendOrderCreated(orderCreatedEvent);
+}
 
     @Transactional
     public OrderResponseDto getOrderById(Long id) {
@@ -86,7 +97,7 @@ public class OrderService {
     @Transactional
     public List<OrderResponseDto> getOrdersByEmail(String email) {
 
-        List<Order> orders = orderRepository.findByUserId(getUserDetailsByEmail(email).getId());
+        List<Order> orders = orderRepository.findByUserId(email);
         if (orders == null) {
             throw new ResourceNotFoundCustomException("Orders not found");
         }
@@ -149,23 +160,10 @@ public class OrderService {
         orderRepository.delete(order);
     }
 
-    UserData getUserDetails(Long userId) {
+    UserData getUserDetails(String userId) {
 
-        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        if (attributes == null) {
-            throw new RuntimeException("No request context available");
-        }
-
-        String authorizationHeader = attributes.getRequest().getHeader(HttpHeaders.AUTHORIZATION);
-
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            throw new TokenValidationCustomException("No valid JWT token found in request");
-        }
-
-        String accessToken = authorizationHeader.substring(7);
         UserData user = webClient.get()
-                .uri("/api/v1/users/{id}", userId)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .uri("/api/v1/users/email/{email}", userId)
                 .retrieve()
                 .bodyToMono(UserData.class)
                 .block();
@@ -173,29 +171,6 @@ public class OrderService {
         return user;
     }
 
-    UserData getUserDetailsByEmail(String email) {
-
-        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        if (attributes == null) {
-            throw new RuntimeException("No request context available");
-        }
-
-        String authorizationHeader = attributes.getRequest().getHeader(HttpHeaders.AUTHORIZATION);
-
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            throw new TokenValidationCustomException("No valid JWT token found in request");
-        }
-
-        String accessToken = authorizationHeader.substring(7);
-        UserData user = webClient.get()
-                .uri("/api/v1/users/email/{email}", email)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
-                .retrieve()
-                .bodyToMono(UserData.class)
-                .block();
-
-        return user;
-    }
     public BigDecimal calcAmount(Order savedOrder) {
         return savedOrder.getOrderItems().stream()
                 .map(oi -> BigDecimal.valueOf(oi.getQuantity() * oi.getItem().getPrice()))

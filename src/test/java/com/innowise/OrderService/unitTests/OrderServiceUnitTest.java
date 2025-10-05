@@ -7,6 +7,7 @@ import com.innowise.OrderService.dto.orderItem.OrderItemRequestDto;
 import com.innowise.OrderService.dto.userData.UserData;
 import com.innowise.OrderService.entity.Item;
 import com.innowise.OrderService.entity.Order;
+import com.innowise.OrderService.entity.OrderItem;
 import com.innowise.OrderService.mapper.OrderMapper;
 import com.innowise.OrderService.producer.OrderProducer;
 import com.innowise.OrderService.repository.ItemRepository;
@@ -19,10 +20,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpHeaders;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -68,28 +65,35 @@ public class OrderServiceUnitTest {
 
     @BeforeEach
     void setUp() {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer test-token");
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
-
         orderRequestDto = new OrderRequestDto();
-        orderRequestDto.setUserId(1L);
+        orderRequestDto.setUserId("test@example.com");
         orderRequestDto.setItems(List.of(new OrderItemRequestDto(1L, 2)));
 
         orderUpdatedRequestDto = new OrderUpdateRequestDto();
-        orderUpdatedRequestDto.setUserId(1L);
+        orderUpdatedRequestDto.setUserId("test@example.com");
         orderUpdatedRequestDto.setStatus("PENDING");
         orderUpdatedRequestDto.setItems(List.of(new OrderItemRequestDto(1L, 2)));
 
         orderEntity = new Order();
         orderEntity.setId(1L);
-        orderEntity.setUserId(1L);
+        orderEntity.setUserId("test@example.com");
         orderEntity.setStatus("PENDING");
         orderEntity.setCreationDate(LocalDateTime.now());
 
+        OrderItem orderItem = new OrderItem();
+        orderItem.setId(1L);
+        orderItem.setQuantity(2);
+
+        Item item = new Item();
+        item.setId(1L);
+        item.setPrice(50.0);
+        orderItem.setItem(item);
+
+        orderEntity.setOrderItems(List.of(orderItem));
+
         orderResponseDto = new OrderResponseDto();
         orderResponseDto.setId(1L);
-        orderResponseDto.setUserId(1L);
+        orderResponseDto.setUserId("test@example.com");
         orderResponseDto.setStatus("PENDING");
         orderResponseDto.setCreationDate(orderEntity.getCreationDate());
 
@@ -102,6 +106,7 @@ public class OrderServiceUnitTest {
     void testCreateOrder() {
         Item item = new Item();
         item.setId(1L);
+        item.setPrice(50.0);
 
         when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
         when(orderRepository.save(any(Order.class))).thenReturn(orderEntity);
@@ -152,7 +157,6 @@ public class OrderServiceUnitTest {
 
         when(webClient.get()).thenReturn(uriSpec);
         when(uriSpec.uri(anyString(), (Object) any())).thenReturn(headerSpec);
-        when(headerSpec.header(anyString(), anyString())).thenReturn(headerSpec);
         when(headerSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.bodyToMono(UserData.class)).thenReturn(mono);
 
@@ -181,7 +185,6 @@ public class OrderServiceUnitTest {
 
         when(webClient.get()).thenReturn(uriSpec);
         when(uriSpec.uri(anyString(), (Object) any())).thenReturn(headerSpec);
-        when(headerSpec.header(anyString(), anyString())).thenReturn(headerSpec);
         when(headerSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.bodyToMono(UserData.class)).thenReturn(mono);
 
@@ -202,7 +205,7 @@ public class OrderServiceUnitTest {
 
         assertNotNull(result);
         assertEquals(orderResponseDto.getUserId(), result.getUserId());
-        assertEquals(orderResponseDto.getStatus(), result.getStatus());
+        assertEquals("PENDING", result.getStatus());
 
         verify(orderRepository).findById(1L);
         verify(orderRepository).save(orderEntity);
@@ -218,5 +221,29 @@ public class OrderServiceUnitTest {
 
         verify(orderRepository).findOrderById(1L);
         verify(orderRepository).delete(orderEntity);
+    }
+
+    @Test
+    void testGetOrdersByEmail() {
+        WebClient.RequestHeadersUriSpec uriSpec = mock(WebClient.RequestHeadersUriSpec.class);
+        WebClient.RequestHeadersSpec headerSpec = mock(WebClient.RequestHeadersSpec.class);
+        WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
+        Mono<UserData> mono = Mono.just(userData);
+
+        List<Order> orders = List.of(orderEntity);
+
+        when(orderRepository.findByUserId("test@example.com")).thenReturn(orders);
+        when(orderMapper.toDto(orderEntity)).thenReturn(orderResponseDto);
+
+        when(webClient.get()).thenReturn(uriSpec);
+        when(uriSpec.uri(anyString(), (Object) any())).thenReturn(headerSpec);
+        when(headerSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(UserData.class)).thenReturn(mono);
+
+        List<OrderResponseDto> result = orderService.getOrdersByEmail("test@example.com");
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(orderResponseDto.getUserId(), result.get(0).getUserId());
     }
 }
