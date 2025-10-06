@@ -16,9 +16,6 @@ public class OrderUpdateRequestDto {
     @Email
     String userId;
 
-    @Size(max = 32, message = "Status max length is 255")
-    String status;
-
     @NotEmpty
     private List<OrderItemRequestDto> items;
 }
