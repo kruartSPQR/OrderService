@@ -150,8 +150,9 @@ public void sendOrderCreatedEvent(Long orderId) {
         if(!order.getStatus().equals("PENDING")) {
             throw new DuplicateResourceCustomException("Cannot update order that is not pending");
         }
-
-        order.setStatus(dto.getStatus());
+        if(!dto.getStatus().isEmpty()){
+            order.setStatus(dto.getStatus());
+        }
 
         order.getOrderItems().clear();
 
