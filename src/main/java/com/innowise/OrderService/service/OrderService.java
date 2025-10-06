@@ -145,18 +145,25 @@ public void sendOrderCreatedEvent(Long orderId) {
     @Transactional
     public OrderResponseDto updateOrder(Long id, OrderUpdateRequestDto dto) {
         Order order = orderRepository.findById(id).orElseThrow(() ->
-                new ResourceNotFoundCustomException("Item not found with id: " + id));
+                new ResourceNotFoundCustomException("Order not found with id: " + id));
 
         if(!order.getStatus().equals("PENDING")) {
             throw new DuplicateResourceCustomException("Cannot update order that is not pending");
         }
 
         order.setStatus(dto.getStatus());
-        List<OrderItem> items = dto.getItems().stream()
-                .map(itemDto -> itemMapper.orderItemRequestDtoToOrderItem(itemDto))
-                .toList();
 
-        order.setOrderItems(items);
+        order.getOrderItems().clear();
+
+        for (OrderItemRequestDto itemDto : dto.getItems()) {
+            Item item = itemRepository.findById(itemDto.getItemId()).orElseThrow(() ->
+                    new ResourceNotFoundCustomException("Item not found with id: " + itemDto.getItemId()));
+            OrderItem orderItem = new OrderItem();
+            orderItem.setOrder(order);
+            orderItem.setItem(item);
+            orderItem.setQuantity(itemDto.getQuantity());
+            order.getOrderItems().add(orderItem);
+        }
 
         Order updatedOrder = orderRepository.save(order);
 

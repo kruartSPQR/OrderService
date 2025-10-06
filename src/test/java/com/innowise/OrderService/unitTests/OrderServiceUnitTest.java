@@ -1,3 +1,4 @@
+// OrderServiceUnitTest.java
 package com.innowise.OrderService.unitTests;
 
 import com.innowise.OrderService.dto.order.OrderRequestDto;
@@ -8,6 +9,7 @@ import com.innowise.OrderService.dto.userData.UserData;
 import com.innowise.OrderService.entity.Item;
 import com.innowise.OrderService.entity.Order;
 import com.innowise.OrderService.entity.OrderItem;
+import com.innowise.OrderService.mapper.ItemMapper;
 import com.innowise.OrderService.mapper.OrderMapper;
 import com.innowise.OrderService.producer.OrderProducer;
 import com.innowise.OrderService.repository.ItemRepository;
@@ -24,6 +26,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,6 +52,9 @@ public class OrderServiceUnitTest {
     private OrderMapper orderMapper;
 
     @Mock
+    private ItemMapper itemMapper;
+
+    @Mock
     private WebClient webClient;
 
     @Mock
@@ -62,6 +68,8 @@ public class OrderServiceUnitTest {
     private Order orderEntity;
     private OrderResponseDto orderResponseDto;
     private UserData userData;
+    private OrderItem orderItem;
+    private Item item;
 
     @BeforeEach
     void setUp() {
@@ -80,16 +88,18 @@ public class OrderServiceUnitTest {
         orderEntity.setStatus("PENDING");
         orderEntity.setCreationDate(LocalDateTime.now());
 
-        OrderItem orderItem = new OrderItem();
-        orderItem.setId(1L);
-        orderItem.setQuantity(2);
-
-        Item item = new Item();
+        item = new Item();
         item.setId(1L);
         item.setPrice(50.0);
-        orderItem.setItem(item);
 
-        orderEntity.setOrderItems(List.of(orderItem));
+        orderItem = new OrderItem();
+        orderItem.setId(1L);
+        orderItem.setQuantity(2);
+        orderItem.setItem(item);
+        orderItem.setOrder(orderEntity);
+
+        // Используем изменяемый ArrayList вместо неизменяемого List.of()
+        orderEntity.setOrderItems(new ArrayList<>(List.of(orderItem)));
 
         orderResponseDto = new OrderResponseDto();
         orderResponseDto.setId(1L);
@@ -104,10 +114,6 @@ public class OrderServiceUnitTest {
 
     @Test
     void testCreateOrder() {
-        Item item = new Item();
-        item.setId(1L);
-        item.setPrice(50.0);
-
         when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
         when(orderRepository.save(any(Order.class))).thenReturn(orderEntity);
         when(orderMapper.toDto(orderEntity)).thenReturn(orderResponseDto);
@@ -197,17 +203,23 @@ public class OrderServiceUnitTest {
 
     @Test
     void testUpdateOrder() {
+        // Настройка моков
         when(orderRepository.findById(1L)).thenReturn(Optional.of(orderEntity));
+        when(itemRepository.findById(1L)).thenReturn(Optional.of(item)); // Мок для поиска Item
         when(orderRepository.save(orderEntity)).thenReturn(orderEntity);
         when(orderMapper.toDto(orderEntity)).thenReturn(orderResponseDto);
 
+        // Вызов тестируемого метода
         OrderResponseDto result = orderService.updateOrder(1L, orderUpdatedRequestDto);
 
+        // Проверки
         assertNotNull(result);
         assertEquals(orderResponseDto.getUserId(), result.getUserId());
         assertEquals("PENDING", result.getStatus());
 
+        // Проверка вызовов
         verify(orderRepository).findById(1L);
+        verify(itemRepository).findById(1L); // Проверяем, что искали Item
         verify(orderRepository).save(orderEntity);
         verify(orderMapper).toDto(orderEntity);
     }
