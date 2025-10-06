@@ -2,6 +2,7 @@ package com.innowise.OrderService.mapper;
 
 import com.innowise.OrderService.dto.item.ItemRequestDto;
 import com.innowise.OrderService.dto.item.ItemResponseDto;
+import com.innowise.OrderService.dto.orderItem.OrderItemRequestDto;
 import com.innowise.OrderService.dto.orderItem.OrderItemResponseDto;
 import com.innowise.OrderService.entity.Item;
 import com.innowise.OrderService.entity.OrderItem;
@@ -21,4 +22,9 @@ public interface ItemMapper {
     @Mapping(source = "item.name", target = "itemName")
     @Mapping(source = "item.price", target = "price")
     OrderItemResponseDto orderItemToDto(OrderItem orderItem);
+
+    @Mapping(source = "item.id", target = "itemId")
+    @Mapping(source = "item.name", target = "itemName")
+    @Mapping(source = "item.price", target = "price")
+    OrderItem orderItemRequestDtoToOrderItem(OrderItemRequestDto orderItemRequestDto);
 }

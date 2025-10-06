@@ -8,11 +8,13 @@ import com.innowise.OrderService.dto.order.OrderResponseDto;
 import com.innowise.OrderService.entity.Item;
 import com.innowise.OrderService.entity.Order;
 import com.innowise.OrderService.entity.OrderItem;
+import com.innowise.OrderService.mapper.ItemMapper;
 import com.innowise.OrderService.mapper.OrderMapper;
 import com.innowise.OrderService.producer.OrderProducer;
 import com.innowise.OrderService.repository.ItemRepository;
 import com.innowise.OrderService.repository.OrderRepository;
 import com.innowise.common.event.OrderCreatedEvent;
+import com.innowise.common.exception.DuplicateResourceCustomException;
 import com.innowise.common.exception.ResourceNotFoundCustomException;
 import lombok.AllArgsConstructor;
 
@@ -31,6 +33,7 @@ public class OrderService {
     private OrderRepository orderRepository;
     private ItemRepository itemRepository;
     private OrderMapper orderMapper;
+    private ItemMapper itemMapper;
     private WebClient webClient;
     private OrderProducer orderProducer;
 
@@ -85,7 +88,7 @@ public void sendOrderCreatedEvent(Long orderId) {
     @Transactional
     public OrderResponseDto getOrderById(Long id) {
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundCustomException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundCustomException("Order not found"));
 
         OrderResponseDto responseDto = orderMapper.toDto(order);
         responseDto.setUserInfo(getUserDetails(order.getUserId()));
@@ -144,8 +147,17 @@ public void sendOrderCreatedEvent(Long orderId) {
         Order order = orderRepository.findById(id).orElseThrow(() ->
                 new ResourceNotFoundCustomException("Item not found with id: " + id));
 
+        if(!order.getStatus().equals("PENDING")) {
+            throw new DuplicateResourceCustomException("Cannot update order that is not pending");
+        }
+
         order.setStatus(dto.getStatus());
-//        order.setUserId(dto.getUserId());
+        List<OrderItem> items = dto.getItems().stream()
+                .map(itemDto -> itemMapper.orderItemRequestDtoToOrderItem(itemDto))
+                .toList();
+
+        order.setOrderItems(items);
+
         Order updatedOrder = orderRepository.save(order);
 
         return orderMapper.toDto(updatedOrder);
