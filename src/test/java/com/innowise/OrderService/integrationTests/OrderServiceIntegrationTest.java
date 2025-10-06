@@ -1,4 +1,3 @@
-// OrderServiceIntegrationTest.java
 package com.innowise.OrderService.integrationTests;
 
 import com.innowise.OrderService.dto.item.ItemRequestDto;
@@ -6,6 +5,7 @@ import com.innowise.OrderService.dto.item.ItemResponseDto;
 import com.innowise.OrderService.dto.order.OrderRequestDto;
 import com.innowise.OrderService.dto.order.OrderResponseDto;
 import com.innowise.OrderService.dto.order.OrderUpdateRequestDto;
+import com.innowise.OrderService.dto.order.UpdatePayedOrderStatusRequestDto;
 import com.innowise.OrderService.dto.orderItem.OrderItemRequestDto;
 import com.innowise.OrderService.dto.userData.UserData;
 import com.innowise.OrderService.producer.OrderProducer;
@@ -48,8 +48,14 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
     private OrderUpdateRequestDto createTestUpdateOrderDto(Long itemId) {
         OrderUpdateRequestDto dto = new OrderUpdateRequestDto();
         dto.setUserId("test@example.com");
-        dto.setStatus("PENDING");
         dto.setItems(List.of(new OrderItemRequestDto(itemId, 1)));
+        return dto;
+    }
+
+    private UpdatePayedOrderStatusRequestDto createTestUpdatePayedOrderStatusDto() {
+        UpdatePayedOrderStatusRequestDto dto = new UpdatePayedOrderStatusRequestDto();
+        dto.setUserId("test@example.com");
+        dto.setStatus("PAID");
         return dto;
     }
 
@@ -98,6 +104,27 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
     @Test
     @DirtiesContext
     void shouldUpdateOrder() {
+        ItemResponseDto item1 = itemService.createItem(new ItemRequestDto("Item1", 50.0));
+        ItemResponseDto item2 = itemService.createItem(new ItemRequestDto("Item2", 60.0));
+
+        UserData user = new UserData();
+        user.setId(1L);
+        user.setEmail("test@example.com");
+        mockWebClient(user);
+
+        OrderResponseDto order = orderService.createOrder(createTestOrderDto(item1.getId()));
+
+        OrderUpdateRequestDto updateRequest = createTestUpdateOrderDto(item2.getId());
+        OrderResponseDto updated = orderService.updateOrder(order.getId(), updateRequest);
+
+        // Проверяем, что состав заказа обновился
+        assertEquals(1, updated.getOrderItems().size());
+        assertEquals(item2.getId(), updated.getOrderItems().get(0).getItemId());
+    }
+
+    @Test
+    @DirtiesContext
+    void shouldUpdatePayedOrderStatus() {
         ItemResponseDto item = itemService.createItem(new ItemRequestDto("Item", 50.0));
 
         UserData user = new UserData();
@@ -107,12 +134,10 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
 
         OrderResponseDto order = orderService.createOrder(createTestOrderDto(item.getId()));
 
-        OrderUpdateRequestDto updateRequest = createTestUpdateOrderDto(item.getId());
-        updateRequest.setStatus("COMPLETED");
+        UpdatePayedOrderStatusRequestDto updateRequest = createTestUpdatePayedOrderStatusDto();
+        OrderResponseDto updated = orderService.updatePayedOrderStatus(order.getId(), updateRequest);
 
-        OrderResponseDto updated = orderService.updateOrder(order.getId(), updateRequest);
-
-        assertEquals("COMPLETED", updated.getStatus());
+        assertEquals("PAID", updated.getStatus());
     }
 
     @Test
@@ -166,7 +191,7 @@ class OrderServiceIntegrationTest extends BaseIntegrationTest {
 
         UserData user = new UserData();
         user.setId(1L);
-        user.setEmail("test@example.com");
+        user.setEmail("testus@example.com");
         mockWebClient(user);
 
         OrderRequestDto orderRequest = createTestOrderDto(item.getId());

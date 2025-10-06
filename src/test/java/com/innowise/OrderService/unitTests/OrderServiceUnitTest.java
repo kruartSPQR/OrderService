@@ -1,4 +1,3 @@
-// OrderServiceUnitTest.java
 package com.innowise.OrderService.unitTests;
 
 import com.innowise.OrderService.dto.order.OrderRequestDto;
@@ -79,7 +78,6 @@ public class OrderServiceUnitTest {
 
         orderUpdatedRequestDto = new OrderUpdateRequestDto();
         orderUpdatedRequestDto.setUserId("test@example.com");
-        orderUpdatedRequestDto.setStatus("PENDING");
         orderUpdatedRequestDto.setItems(List.of(new OrderItemRequestDto(1L, 2)));
 
         orderEntity = new Order();
@@ -98,7 +96,6 @@ public class OrderServiceUnitTest {
         orderItem.setItem(item);
         orderItem.setOrder(orderEntity);
 
-        // Используем изменяемый ArrayList вместо неизменяемого List.of()
         orderEntity.setOrderItems(new ArrayList<>(List.of(orderItem)));
 
         orderResponseDto = new OrderResponseDto();
@@ -106,6 +103,7 @@ public class OrderServiceUnitTest {
         orderResponseDto.setUserId("test@example.com");
         orderResponseDto.setStatus("PENDING");
         orderResponseDto.setCreationDate(orderEntity.getCreationDate());
+        orderResponseDto.setUserInfo(null);
 
         userData = new UserData();
         userData.setId(1L);
@@ -123,6 +121,7 @@ public class OrderServiceUnitTest {
         assertNotNull(result);
         assertEquals(orderResponseDto.getUserId(), result.getUserId());
         assertEquals(orderResponseDto.getStatus(), result.getStatus());
+        assertEquals(1, orderEntity.getOrderItems().size());
 
         verify(itemRepository).findById(1L);
         verify(orderRepository).save(any(Order.class));
@@ -160,7 +159,6 @@ public class OrderServiceUnitTest {
 
         when(orderRepository.findById(1L)).thenReturn(Optional.of(orderEntity));
         when(orderMapper.toDto(orderEntity)).thenReturn(orderResponseDto);
-
         when(webClient.get()).thenReturn(uriSpec);
         when(uriSpec.uri(anyString(), (Object) any())).thenReturn(headerSpec);
         when(headerSpec.retrieve()).thenReturn(responseSpec);
@@ -171,9 +169,11 @@ public class OrderServiceUnitTest {
         assertNotNull(result);
         assertEquals(orderResponseDto.getUserId(), result.getUserId());
         assertEquals(orderResponseDto.getStatus(), result.getStatus());
+        assertEquals(userData, result.getUserInfo());
 
         verify(orderRepository).findById(1L);
         verify(orderMapper).toDto(orderEntity);
+        verify(webClient).get();
     }
 
     @Test
@@ -188,7 +188,6 @@ public class OrderServiceUnitTest {
 
         when(orderRepository.findAllById(ids)).thenReturn(orders);
         when(orderMapper.toDto(orderEntity)).thenReturn(orderResponseDto);
-
         when(webClient.get()).thenReturn(uriSpec);
         when(uriSpec.uri(anyString(), (Object) any())).thenReturn(headerSpec);
         when(headerSpec.retrieve()).thenReturn(responseSpec);
@@ -199,27 +198,29 @@ public class OrderServiceUnitTest {
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals(orderResponseDto.getUserId(), result.get(0).getUserId());
+        assertEquals(userData, result.get(0).getUserInfo());
+
+        verify(orderRepository).findAllById(ids);
+        verify(orderMapper).toDto(orderEntity);
+        verify(webClient).get();
     }
 
     @Test
     void testUpdateOrder() {
-        // Настройка моков
         when(orderRepository.findById(1L)).thenReturn(Optional.of(orderEntity));
-        when(itemRepository.findById(1L)).thenReturn(Optional.of(item)); // Мок для поиска Item
+        when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
         when(orderRepository.save(orderEntity)).thenReturn(orderEntity);
         when(orderMapper.toDto(orderEntity)).thenReturn(orderResponseDto);
 
-        // Вызов тестируемого метода
         OrderResponseDto result = orderService.updateOrder(1L, orderUpdatedRequestDto);
 
-        // Проверки
         assertNotNull(result);
         assertEquals(orderResponseDto.getUserId(), result.getUserId());
         assertEquals("PENDING", result.getStatus());
+        assertEquals(1, orderEntity.getOrderItems().size());
 
-        // Проверка вызовов
         verify(orderRepository).findById(1L);
-        verify(itemRepository).findById(1L); // Проверяем, что искали Item
+        verify(itemRepository).findById(1L);
         verify(orderRepository).save(orderEntity);
         verify(orderMapper).toDto(orderEntity);
     }
@@ -246,7 +247,6 @@ public class OrderServiceUnitTest {
 
         when(orderRepository.findByUserId("test@example.com")).thenReturn(orders);
         when(orderMapper.toDto(orderEntity)).thenReturn(orderResponseDto);
-
         when(webClient.get()).thenReturn(uriSpec);
         when(uriSpec.uri(anyString(), (Object) any())).thenReturn(headerSpec);
         when(headerSpec.retrieve()).thenReturn(responseSpec);
@@ -257,5 +257,10 @@ public class OrderServiceUnitTest {
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals(orderResponseDto.getUserId(), result.get(0).getUserId());
+        assertEquals(userData, result.get(0).getUserInfo());
+
+        verify(orderRepository).findByUserId("test@example.com");
+        verify(orderMapper).toDto(orderEntity);
+        verify(webClient).get();
     }
 }
