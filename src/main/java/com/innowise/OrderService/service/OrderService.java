@@ -1,6 +1,7 @@
 package com.innowise.OrderService.service;
 
 import com.innowise.OrderService.dto.order.OrderUpdateRequestDto;
+import com.innowise.OrderService.dto.order.UpdatePayedOrderStatusRequestDto;
 import com.innowise.OrderService.dto.orderItem.OrderItemRequestDto;
 import com.innowise.OrderService.dto.userData.UserData;
 import com.innowise.OrderService.dto.order.OrderRequestDto;
@@ -141,7 +142,6 @@ public void sendOrderCreatedEvent(Long orderId) {
                 })
                 .toList();
     }
-
     @Transactional
     public OrderResponseDto updateOrder(Long id, OrderUpdateRequestDto dto) {
         Order order = orderRepository.findById(id).orElseThrow(() ->
@@ -149,9 +149,6 @@ public void sendOrderCreatedEvent(Long orderId) {
 
         if(!order.getStatus().equals("PENDING")) {
             throw new DuplicateResourceCustomException("Cannot update order that is not pending");
-        }
-        if(!dto.getStatus().isEmpty()){
-            order.setStatus(dto.getStatus());
         }
 
         order.getOrderItems().clear();
@@ -165,6 +162,17 @@ public void sendOrderCreatedEvent(Long orderId) {
             orderItem.setQuantity(itemDto.getQuantity());
             order.getOrderItems().add(orderItem);
         }
+
+        Order updatedOrder = orderRepository.save(order);
+
+        return orderMapper.toDto(updatedOrder);
+    }
+    @Transactional
+    public OrderResponseDto updatePayedOrderStatus(Long id, UpdatePayedOrderStatusRequestDto dto) {
+        Order order = orderRepository.findById(id).orElseThrow(() ->
+                new ResourceNotFoundCustomException("Order not found with id: " + id));
+
+        order.setStatus(dto.getStatus());
 
         Order updatedOrder = orderRepository.save(order);
 

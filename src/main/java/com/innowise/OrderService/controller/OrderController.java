@@ -3,6 +3,7 @@ package com.innowise.OrderService.controller;
 import com.innowise.OrderService.dto.order.OrderRequestDto;
 import com.innowise.OrderService.dto.order.OrderResponseDto;
 import com.innowise.OrderService.dto.order.OrderUpdateRequestDto;
+import com.innowise.OrderService.dto.order.UpdatePayedOrderStatusRequestDto;
 import com.innowise.OrderService.service.OrderService;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -61,6 +62,10 @@ public class OrderController {
     @PutMapping("/{id}")
     ResponseEntity<OrderResponseDto> updateOrder(@PathVariable Long id, @Valid @RequestBody OrderUpdateRequestDto orderUpdateRequestDto) {
         return  new ResponseEntity<>(orderService.updateOrder(id, orderUpdateRequestDto), HttpStatus.OK);
+    }
+    @PutMapping("/payed/{id}")
+    ResponseEntity<OrderResponseDto> updatePayedOrder(@PathVariable Long id, @Valid @RequestBody UpdatePayedOrderStatusRequestDto dto) {
+        return  new ResponseEntity<>(orderService.updatePayedOrderStatus(id, dto), HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")

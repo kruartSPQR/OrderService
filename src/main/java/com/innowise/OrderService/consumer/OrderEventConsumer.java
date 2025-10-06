@@ -1,6 +1,7 @@
 package com.innowise.OrderService.consumer;
 
 import com.innowise.OrderService.dto.order.OrderUpdateRequestDto;
+import com.innowise.OrderService.dto.order.UpdatePayedOrderStatusRequestDto;
 import com.innowise.OrderService.entity.Order;
 import com.innowise.OrderService.repository.OrderRepository;
 import com.innowise.OrderService.service.OrderService;
@@ -22,7 +23,7 @@ public class OrderEventConsumer {
     @Transactional
     public void handlePaymentCreated(PaymentCreatedEvent event, Acknowledgment ack){
 
-        OrderUpdateRequestDto dto = new OrderUpdateRequestDto();
+        UpdatePayedOrderStatusRequestDto dto = new UpdatePayedOrderStatusRequestDto();
 
         Order order =  orderRepository.findById(event.getOrderId())
                 .orElseThrow(() ->new ResourceNotFoundCustomException("Order not found with id: " + event.getOrderId()));
@@ -38,7 +39,7 @@ public class OrderEventConsumer {
         else{
             dto.setStatus("FAILED");
         }
-        orderService.updateOrder(event.getOrderId(), dto);
+        orderService.updatePayedOrderStatus(event.getOrderId(), dto);
         ack.acknowledge();
     }
 }
